@@ -1,6 +1,6 @@
 namespace back_end;
 
-public class User
+public class Login
 {
     public String? Name { get; set; }
 
