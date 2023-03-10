@@ -1,4 +1,8 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace back_end.Controllers;
 
@@ -13,7 +17,7 @@ public class LoginController : ControllerBase
         _logger = logger;
     }
 
-    
+    [AllowAnonymous]
     [HttpGet("login")]
     public async Task<ActionResult> Get(string email, string password)
     {
@@ -24,6 +28,15 @@ public class LoginController : ControllerBase
         }
         else
         {
+            await HttpContext.SignInAsync(new ClaimsPrincipal(new[]
+            {
+                new ClaimsIdentity(new List<Claim>()
+                {
+                    new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                    new Claim(ClaimTypes.Role, "Admin")
+                },
+                CookieAuthenticationDefaults.AuthenticationScheme)
+            }));
             return Ok(name);
         }
     }
@@ -59,5 +72,12 @@ public class LoginController : ControllerBase
         {
             return result;
         }
+    }
+
+    [HttpPost("logout")]
+    public async Task<ActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Ok("Succesfuly loged out");
     }
 }
