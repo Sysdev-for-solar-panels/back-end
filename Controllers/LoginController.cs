@@ -19,10 +19,10 @@ public class LoginController : ControllerBase
 
     [AllowAnonymous]
     [HttpGet("login")]
-    public async Task<ActionResult> Get(string email, string password)
+    public async Task<ActionResult> Login(string email, string password)
     {
-        string? name = await new DBController().Login(email,password);
-        if (name is null)
+        (string,string)? signInUser = await new DBController().Login(email,password);
+        if (signInUser is null)
         {
             return NotFound("Wrong email or password!");
         }
@@ -33,15 +33,17 @@ public class LoginController : ControllerBase
                 new ClaimsIdentity(new List<Claim>()
                 {
                     new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                    new Claim(ClaimTypes.Role, "Admin")
+                    new Claim(ClaimTypes.Role, signInUser.Value.Item2)
                 },
                 CookieAuthenticationDefaults.AuthenticationScheme)
             }));
-            return Ok(name);
+            return Ok(signInUser.Value.Item1);
         }
     }
+
+    [Authorize(Roles = "admin")]
     [HttpPost("registration")]
-    public async Task<ActionResult> Post(string name,string email,string password,string role)
+    public async Task<ActionResult> Registration(string name,string email,string password,string role)
     {
         bool result = await new DBController().Registration(name,email,password,role);
         if (result)
@@ -74,6 +76,7 @@ public class LoginController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpPost("logout")]
     public async Task<ActionResult> Logout()
     {

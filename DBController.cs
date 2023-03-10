@@ -16,7 +16,7 @@ class DBController
         dataSource = NpgsqlDataSource.Create($"Host={host};Port={port};Username={uesrname};Password={password};Database={database}");
     }
 
-    public async Task<string?> Login(string email, string password)
+    public async Task<(string,string)?> Login(string email, string password)
     {
         await using var cmd = new NpgsqlCommand(
             @"select * from users 
@@ -33,7 +33,7 @@ class DBController
         if (reader.HasRows)
         {
             reader.Read();
-            return reader.GetString(1);
+            return (reader.GetString(1),reader.GetString(4));
         }
         else 
         {
