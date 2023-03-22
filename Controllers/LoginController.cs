@@ -22,35 +22,48 @@ public class LoginController : ControllerBase
     [HttpPost("login")]
     public async Task<ActionResult> Login([FromBody] User user)
     {
-        (string,string)? signInUser = await new DBController().Login(user.Email!,user.Password!);
-        if (signInUser is null)
+        if (user.Password is null && user.Email is null) 
         {
             var response = new 
             {
-                error = "Wrong email or password!"
+                error = "Add email or password"
             };
             
             return NotFound(JsonSerializer.Serialize(response));
         }
         else
         {
-            await HttpContext.SignInAsync(new ClaimsPrincipal(new[]
+            (string,string)? signInUser = await new DBController().Login(user.Email!,user.Password!);
+            if (signInUser is null)
             {
-                new ClaimsIdentity(new List<Claim>()
+                var response = new 
                 {
-                    new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
-                    new Claim(ClaimTypes.Role, signInUser.Value.Item2)
-                },
-                CookieAuthenticationDefaults.AuthenticationScheme)
-            }));
-            
-            var response = new 
+                    error = "Wrong email or password!"
+                };
+                
+                return NotFound(JsonSerializer.Serialize(response));
+            }
+            else
             {
-                name = signInUser.Value.Item1,
-                role = signInUser.Value.Item2
-            };
-            return Ok(JsonSerializer.Serialize(response));
+                await HttpContext.SignInAsync(new ClaimsPrincipal(new[]
+                {
+                    new ClaimsIdentity(new List<Claim>()
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString()),
+                        new Claim(ClaimTypes.Role, signInUser.Value.Item2)
+                    },
+                    CookieAuthenticationDefaults.AuthenticationScheme)
+                }));
+                
+                var response = new 
+                {
+                    name = signInUser.Value.Item1,
+                    role = signInUser.Value.Item2
+                };
+                return Ok(JsonSerializer.Serialize(response));
+            }
         }
+        
     }
 
     [Authorize(Roles = "admin")]
