@@ -46,7 +46,8 @@ public class LoginController : ControllerBase
             
             var response = new 
             {
-                name = signInUser.Value.Item1
+                name = signInUser.Value.Item1,
+                role = signInUser.Value.Item2
             };
             return Ok(JsonSerializer.Serialize(response));
         }
