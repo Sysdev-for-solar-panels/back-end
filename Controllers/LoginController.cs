@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Text.Json;
 
 namespace back_end.Controllers;
 
@@ -18,13 +19,18 @@ public class LoginController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpGet("login")]
-    public async Task<ActionResult> Login(string email, string password)
+    [HttpPost("login")]
+    public async Task<ActionResult> Login([FromBody] User user)
     {
-        (string,string)? signInUser = await new DBController().Login(email,password);
+        (string,string)? signInUser = await new DBController().Login(user.Email!,user.Password!);
         if (signInUser is null)
         {
-            return NotFound("Wrong email or password!");
+            var response = new 
+            {
+                error = "Wrong email or password!"
+            };
+            
+            return NotFound(JsonSerializer.Serialize(response));
         }
         else
         {
@@ -37,38 +43,56 @@ public class LoginController : ControllerBase
                 },
                 CookieAuthenticationDefaults.AuthenticationScheme)
             }));
-            return Ok(signInUser.Value.Item1);
+            
+            var response = new 
+            {
+                name = signInUser.Value.Item1
+            };
+            return Ok(JsonSerializer.Serialize(response));
         }
     }
 
     [Authorize(Roles = "admin")]
     [HttpPost("registration")]
-    public async Task<ActionResult> Registration(string name,string email,string password,string role)
+    public async Task<ActionResult> Registration([FromBody] Registration user)
     {
-        bool result = await new DBController().Registration(name,email,password,role);
+        string resultValue = "Unsuccesful registration";
+        
+        bool result = await new DBController().Registration(user.Name!,user.Email!,user.Password!,user.Role!);
         if (result)
         {
-            return Ok("Registration completed.");
+            resultValue = "Registration completed.";
+            var obj = new
+            {
+                Value = resultValue
+            };
+
+            return Ok(JsonSerializer.Serialize(resultValue));
         }
         else 
         {
-            return StatusCode(500, new { Message = "Internal Error." });
+            var obj = new
+            {
+                Value = resultValue
+            };
+            
+            return BadRequest(JsonSerializer.Serialize(obj));
         }
     }
 
     [HttpDelete("delete")]
-    public async Task<ActionResult> Delete(string email, string password)
+    public async Task<ActionResult> Delete([FromBody] User user)
     {
-        var result = await new DBController().Delete(email,password) switch {
-            DBController.Result.Ok => Ok("Succesfully deleted"),
-            DBController.Result.NoRecordAffected => BadRequest("Wrong email or password"),
-            DBController.Result.DbException => StatusCode(500, new { Message = "Internal Error." }),
+        var result = await new DBController().Delete(user.Email!,user.Password!) switch {
+            DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully deleted"})),
+            DBController.Result.NoRecordAffected => BadRequest(new {Message =  "Wrong email or password"}),
+            DBController.Result.DbException => StatusCode(500, new {Message =  "Internal error"}),
             _ => null
         };
         
         if (result is null)
         {
-            return StatusCode(500, new { Message = "Internal Error." });
+            return StatusCode(500, JsonSerializer.Serialize(new { Message = "Internal Error." }));
         }
         else 
         {
@@ -81,6 +105,6 @@ public class LoginController : ControllerBase
     public async Task<ActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        return Ok("Succesfuly loged out");
+        return Ok(JsonSerializer.Serialize(new {Message = "Succesfuly loged out"}));
     }
 }
