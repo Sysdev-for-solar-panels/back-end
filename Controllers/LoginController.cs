@@ -115,7 +115,7 @@ public class LoginController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpPost("logout")]
+    [HttpGet("logout")]
     public async Task<ActionResult> Logout()
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

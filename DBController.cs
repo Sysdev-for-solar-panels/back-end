@@ -13,7 +13,7 @@ class DBController
         string uesrname = Environment.GetEnvironmentVariable("USERNAME")!;
         string password = Environment.GetEnvironmentVariable("PASSWORD")!;
         string database = Environment.GetEnvironmentVariable("DATABASE")!;
-        dataSource = NpgsqlDataSource.Create($"Host=localhost;Port=5432;Username=postgres;Password=porcica1;Database=data");
+        dataSource = NpgsqlDataSource.Create($"Host={host};Port={port};Username={uesrname};Password={password};Database={database}");
     }
 
     public async Task<(string,string)?> Login(string email, string password)
