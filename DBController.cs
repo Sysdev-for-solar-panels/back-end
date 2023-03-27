@@ -116,8 +116,9 @@ class DBController
             await cmd.ExecuteNonQueryAsync();
             return Result.Ok;
         }
-        catch (System.Data.Common.DbException)
+        catch (System.Data.Common.DbException err)
         {
+            Console.Error.WriteLine(err);
             return Result.DbException;
         }
     }
@@ -141,8 +142,9 @@ class DBController
             await cmd.ExecuteNonQueryAsync();
             return Result.Ok;
         }
-        catch (System.Data.Common.DbException)
+        catch (System.Data.Common.DbException err)
         {
+            Console.Error.WriteLine(err);
             return Result.DbException;
         }
     }
