@@ -151,7 +151,7 @@ public class LoginController : ControllerBase
         }
         else 
         {
-            var result = await new DBController().AddComponent(component.Name,component.Price,component.MaxQuantity) switch {
+            var result = await new DBController().AddComponent(component.Name,component.Price.ToString()!,component.MaxQuantity.ToString()!) switch {
                 DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the price"})),
                 DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Bad request"})),
                 _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Bad request"}))
