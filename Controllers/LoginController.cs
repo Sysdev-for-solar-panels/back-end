@@ -99,8 +99,8 @@ public class LoginController : ControllerBase
     {
         var result = await new DBController().Delete(user.Email!,user.Password!) switch {
             DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully deleted"})),
-            DBController.Result.NoRecordAffected => BadRequest(new {Message =  "Wrong email or password"}),
-            DBController.Result.DbException => StatusCode(500, new {Message =  "Internal error"}),
+            DBController.Result.NoRecordAffected => BadRequest(JsonSerializer.Serialize(new {Message =  "Wrong email or password"})),
+            DBController.Result.DbException => StatusCode( 500,JsonSerializer.Serialize(new {Message =  "Internal error"})),
             _ => null
         };
         
@@ -120,5 +120,44 @@ public class LoginController : ControllerBase
     {
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return Ok(JsonSerializer.Serialize(new {Message = "Succesfuly loged out"}));
+    }
+
+    [Authorize(Roles = "raktarvezeto")]
+    [HttpPost("set-price")]
+    public async Task<ActionResult> SetPrice([FromBody] Price price)
+    {
+        if (price.ID is null || price.Value is null)
+        {
+            return BadRequest(JsonSerializer.Serialize(new {Message = "Missing data"}));
+        }
+        else 
+        {
+            var result = await new DBController().ChangePrice(price.ID,price.Value) switch {
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the price"})),
+                DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Bad request"})),
+                _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Bad request"}))
+            };
+            return result;
+        }
+    }
+
+    [Authorize(Roles = "raktarvezeto")]
+    [HttpPost("add-component")]
+    public async Task<ActionResult> AddComponent([FromBody] Component component)
+    {
+        if (component.Name == null || component.Price == null || component.MaxQuantity == null)
+        {
+            return BadRequest(JsonSerializer.Serialize(new {Message = "Missing data"}));
+        }
+        else 
+        {
+            var result = await new DBController().AddComponent(component.Name,component.Price,component.MaxQuantity) switch {
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the price"})),
+                DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Bad request"})),
+                _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Bad request"}))
+            };
+
+            return result;
+        }
     }
 }

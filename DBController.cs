@@ -98,4 +98,52 @@ class DBController
             return Result.DbException;
         }
     }
+
+    public async Task<Result> ChangePrice(string id, string price)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"UPDATE components SET price = @p2 WHERE id = @p1",dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new("p1", id),
+                new("p2", price),
+            }
+        };
+
+        try
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch (System.Data.Common.DbException)
+        {
+            return Result.DbException;
+        }
+    }
+
+    public async Task<Result> AddComponent(string name,string price,string maxQuantity)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"INSERT INTO components (name,price,max_quantity) 
+                VALUES (@p1, @p2, @p3)",dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new("p1", name),
+                new("p2", price),
+                new("p3", maxQuantity),    
+            }
+        };
+
+        try
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch (System.Data.Common.DbException)
+        {
+            return Result.DbException;
+        }
+    }
 }
