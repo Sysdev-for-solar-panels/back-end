@@ -99,7 +99,7 @@ class DBController
         }
     }
 
-    public async Task<Result> ChangePrice(string id, string price)
+    public async Task<Result> ChangePrice(int id, int price)
     {
         await using var cmd = new NpgsqlCommand(
             @"UPDATE components SET price = @p2 WHERE id = @p1",dataSource.OpenConnection())
@@ -123,7 +123,7 @@ class DBController
         }
     }
 
-    public async Task<Result> AddComponent(string name,string price,string maxQuantity)
+    public async Task<Result> AddComponent(string name,int price,int maxQuantity)
     {
         await using var cmd = new NpgsqlCommand(
             @"INSERT INTO components (name,price,max_quantity) 

@@ -126,8 +126,9 @@ public class LoginController : ControllerBase
     [HttpPost("set-price")]
     public async Task<ActionResult> SetPrice([FromBody] Price price)
     {
-        if (price.ID is null || price.Value is null)
+        if (price.ID == 0 || price.Value == 0)
         {
+            Console.Error.WriteLine("result");
             return BadRequest(JsonSerializer.Serialize(new {Message = "Missing data"}));
         }
         else 
@@ -145,14 +146,14 @@ public class LoginController : ControllerBase
     [HttpPost("add-component")]
     public async Task<ActionResult> AddComponent([FromBody] Component component)
     {
-        if (component.Name == null || component.Price == null || component.MaxQuantity == null)
+        if (component.Name is null || component.Price == 0 || component.MaxQuantity == 0)
         {
             return BadRequest(JsonSerializer.Serialize(new {Message = "Missing data"}));
         }
         else 
         {
-            var result = await new DBController().AddComponent(component.Name,component.Price.ToString()!,component.MaxQuantity.ToString()!) switch {
-                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the price"})),
+            var result = await new DBController().AddComponent(component.Name, component.Price!, component.MaxQuantity!) switch {
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully added new component"})),
                 DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Bad request"})),
                 _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Bad request"}))
             };
