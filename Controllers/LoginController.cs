@@ -163,13 +163,12 @@ public class LoginController : ControllerBase
     }
 
     [Authorize(Roles = "raktarvezeto")]
-    [HttpPost("list-components")]
+    [HttpGet("list-components")]
     public async Task<ActionResult> ListComponent()
     {
       List<Component> component  = await new DBController().ListComponents();
       if (component.Count == 0)
       {
-        Console.WriteLine("Error");
         return BadRequest(JsonSerializer.Serialize(new {Message = "There is no component"}));
       }
       else
