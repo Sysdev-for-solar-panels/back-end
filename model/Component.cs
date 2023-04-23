@@ -7,4 +7,6 @@ public class Component
     public int Price { get; set; }
 
     public int MaxQuantity { get; set; }
+
+    public int ID {get; set;}
 }

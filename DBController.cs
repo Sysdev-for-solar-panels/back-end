@@ -1,4 +1,5 @@
 using Npgsql;
+using back_end;
 
 class DBController
 {
@@ -147,5 +148,27 @@ class DBController
             Console.Error.WriteLine(err);
             return Result.DbException;
         }
+    }
+
+    public async Task<List<Component>> ListComponents()
+    {
+        List<Component> results = new List<Component>();
+        await using var cmd = new NpgsqlCommand(
+            @"select * from components", dataSource.OpenConnection());
+
+        var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            //id,name,price
+            results.Add(
+            new Component
+                {
+                    ID = reader.GetInt32(0),
+                    Name = reader.GetString(1), 
+                    Price = reader.GetInt32(2)
+                }
+            );
+        }
+        return results;
     }
 }
