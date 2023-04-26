@@ -219,18 +219,19 @@ class DBController
         }
     }
     // A1-5-ig 
-    public async Task<Result> AddNewProject(string name,string description,string status, int user_id)
+    public async Task<Result> AddNewProject(string name,string description,string status, int user_id, string location)
     {
         await using var cmd = new NpgsqlCommand(
-            @"INSERT INTO projects (name,description,status,user_id) 
-                VALUES (@p1, @p2, @p3, @p4)",dataSource.OpenConnection())
+            @"INSERT INTO projects (name,description,status,user_id, location) 
+                VALUES (@p1, @p2, @p3, @p4, @p5)",dataSource.OpenConnection())
         {
             Parameters =
             {
                 new("p1", name),
                 new("p2", description),
                 new("p3", status),
-                new("p4", user_id)   
+                new("p4", user_id),
+                new("p5", location)
             }
         };
 
@@ -258,12 +259,11 @@ class DBController
             results.Add(
             new Project
                 {
-                    id = reader.GetInt32(0),
                     name = reader.GetString(1),
                     description = reader.GetString(2), 
                     status = reader.GetString(3),
                     user_id = reader.GetInt32(4),
-                    location = reader.GetString(5)
+                    Location = reader.GetString(5)
                 }
             );
         }

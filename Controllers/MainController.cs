@@ -216,4 +216,32 @@ public class LoginController : ControllerBase
             };
         return result;
     }
+
+    [HttpPost("create-project")]
+    [Authorize(Roles = "szakember")]
+    public async Task<ActionResult> CreateProject([FromBody] Project project)
+    {
+        var result = await new DBController().AddNewProject(project.name!,project.description!,project.status!,project.user_id, project.Location!) switch {
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully created the project"})),
+                DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Internal error"})),
+                _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
+            };
+        
+        return result;
+    }
+
+    [HttpGet("list-project")]
+    [Authorize(Roles = "szakember")]
+    public async Task<ActionResult> ListProject()
+    {
+        var result = await new DBController().ListProjects();
+        if (result.Count == 0)
+        {
+            return StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}));
+        }
+        else
+        {
+            return Ok(JsonSerializer.Serialize(result));
+        }
+    }
 }
