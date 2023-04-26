@@ -172,6 +172,7 @@ class DBController
         return results;
     }
 
+<<<<<<< HEAD
     public async Task<List<StackItem>> ListStack()
     {
         List<StackItem> stackItems = new List<StackItem>();
@@ -206,6 +207,24 @@ class DBController
                     new("p1", newQuantity),
                 }
             };
+=======
+    // A1-5-ig 
+    public async Task<Result> AddNewProject(string name,string description,string status, int user_id)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"INSERT INTO projects (name,description,status,user_id) 
+                VALUES (@p1, @p2, @p3, @p4)",dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new("p1", name),
+                new("p2", description),
+                new("p3", status),
+                new("p4", user_id)   
+            }
+        };
+
+>>>>>>> 020408e485da699e5dffa3693d61668693467f12
         try
         {
             await cmd.ExecuteNonQueryAsync();
@@ -217,4 +236,32 @@ class DBController
             return Result.DbException;
         }
     }
+<<<<<<< HEAD
+=======
+    public async Task<List<Project>> ListProjects()
+    {
+        List<Project> results = new List<Project>();
+        await using var cmd = new NpgsqlCommand(
+            @"select * from projects", dataSource.OpenConnection());
+
+        var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            //name,description,status,user_id
+            results.Add(
+            new Project
+                {
+                    id = reader.GetInt32(0),
+                    name = reader.GetString(1),
+                    description = reader.GetString(2), 
+                    status = reader.GetString(3),
+                    user_id = reader.GetInt32(4),
+                    location = reader.GetString(5)
+                }
+            );
+        }
+        return results;
+    }
+
+>>>>>>> 020408e485da699e5dffa3693d61668693467f12
 }
