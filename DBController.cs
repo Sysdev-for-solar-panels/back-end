@@ -171,4 +171,50 @@ class DBController
         }
         return results;
     }
+
+    public async Task<List<StackItem>> ListStack()
+    {
+        List<StackItem> stackItems = new List<StackItem>();
+        await using var cmd = new NpgsqlCommand(
+            @"select stack.id,stack.component_id,components.name,components.quantity,components.max_quantity
+                from stack
+                join components on stack.component_id = components.id", dataSource.OpenConnection());
+        var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            stackItems.Add(
+            new StackItem
+            {
+                StackId = reader.GetInt32(0),
+                ComponentId = reader.GetValue(1) as int?,
+                ComponentName = reader.GetString(2),
+                ComponentQuantity = reader.GetValue(3) as int?,
+                ComponentMaxQuantity = reader.GetValue(4) as int?
+            });
+        }
+        return stackItems;
+    }
+
+    public async Task<Result> UpdateComponent(int id, int newQuantity)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"update components set quantity = @p1 where id = @p2", dataSource.OpenConnection())
+            {
+                Parameters =
+                {
+                    new("p2", id),
+                    new("p1", newQuantity),
+                }
+            };
+        try
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch (System.Data.Common.DbException err)
+        {
+            Console.Error.WriteLine(err);
+            return Result.DbException;
+        }
+    }
 }

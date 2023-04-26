@@ -9,4 +9,6 @@ public class Component
     public int MaxQuantity { get; set; }
 
     public int ID {get; set;}
+
+    public int quantity {get;set;}
 }

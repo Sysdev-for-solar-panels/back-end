@@ -63,7 +63,6 @@ public class LoginController : ControllerBase
                 return Ok(JsonSerializer.Serialize(response));
             }
         }
-        
     }
 
     [Authorize(Roles = "admin")]
@@ -175,5 +174,34 @@ public class LoginController : ControllerBase
       {
         return Ok(JsonSerializer.Serialize(component));
       }
+    }
+
+    [Authorize(Roles = "raktarvezeto")]
+    [HttpGet("list-stack")]
+    public async Task<ActionResult> ListStack()
+    {
+        List<StackItem> stackItems =  await new DBController().ListStack();
+
+        if (stackItems.Count == 0)
+        {
+            return BadRequest(JsonSerializer.Serialize(new {Message = "There is no stack item"}));
+        }
+        else 
+        {
+            return Ok(JsonSerializer.Serialize(stackItems));
+        }
+
+    }
+
+    [HttpPost("update-component")]
+    [Authorize(Roles = "raktarvezeto")]
+    public async Task<ActionResult> UpdateComponent([FromBody] Component comp)
+    {
+        var result = await new DBController().UpdateComponent(comp.ID, comp.quantity) switch {
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully updated new component"})),
+                DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Bad request"})),
+                _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Bad request"}))
+            };
+        return result;
     }
 }
