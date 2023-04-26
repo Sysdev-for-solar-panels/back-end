@@ -172,7 +172,6 @@ class DBController
         return results;
     }
 
-<<<<<<< HEAD
     public async Task<List<StackItem>> ListStack()
     {
         List<StackItem> stackItems = new List<StackItem>();
@@ -207,7 +206,17 @@ class DBController
                     new("p1", newQuantity),
                 }
             };
-=======
+
+        try 
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
+    }
     // A1-5-ig 
     public async Task<Result> AddNewProject(string name,string description,string status, int user_id)
     {
@@ -224,7 +233,6 @@ class DBController
             }
         };
 
->>>>>>> 020408e485da699e5dffa3693d61668693467f12
         try
         {
             await cmd.ExecuteNonQueryAsync();
@@ -236,8 +244,6 @@ class DBController
             return Result.DbException;
         }
     }
-<<<<<<< HEAD
-=======
     public async Task<List<Project>> ListProjects()
     {
         List<Project> results = new List<Project>();
@@ -263,5 +269,4 @@ class DBController
         return results;
     }
 
->>>>>>> 020408e485da699e5dffa3693d61668693467f12
 }
