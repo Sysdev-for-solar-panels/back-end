@@ -207,8 +207,13 @@ public class LoginController : ControllerBase
 
     [HttpPost("join-stack")]
     [Authorize(Roles = "raktarvezeto")]
-    public async Task<ActionResult> JoinStack([FromBody] StackItem componentItem)
+    public async Task<ActionResult> JoinStack([FromBody] StackItem stackItem)
     {
-        
+        var result = await new DBController().JoinStack(stackItem) switch {
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully joined a new component"})),
+                DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Internal error"})),
+                _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
+            };
+        return result;
     }
 }

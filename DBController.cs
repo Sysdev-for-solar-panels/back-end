@@ -270,9 +270,40 @@ class DBController
         return results;
     }
 
-    public async Task<Result> JoinStack(StackItem componentItem)
+    public async Task<Result> JoinStack(StackItem stackItem)
     {
-        await using var cmd = new NpgsqlCommand(
-            @"select * from projects", dataSource.OpenConnection());
+        await using var copy = new NpgsqlCommand(
+            @"insert into components (name,price,max_quantity,description,status,quantity)
+            select name, price, max_quantity, description, status, 0
+            from components
+            where name = @p1
+            RETURNING id", dataSource.OpenConnection())
+            {
+                Parameters = 
+                {
+                    new("p1", stackItem.ComponentName),
+                }
+            };
+        try
+        {
+            var reader = await copy.ExecuteReaderAsync();
+            reader.Read();
+            int componentId = reader.GetInt32(0);
+            await using var update = new NpgsqlCommand(
+            @"UPDATE stack set component_id = @p1 WHERE id = @p2", dataSource.OpenConnection())
+            {
+                Parameters = 
+                {
+                    new("p1",componentId),
+                    new("p2", stackItem.StackId),
+                }
+            };
+            await update.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
     }
 }
