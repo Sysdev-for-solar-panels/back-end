@@ -178,7 +178,7 @@ class DBController
         await using var cmd = new NpgsqlCommand(
             @"select stack.id,stack.component_id,components.name,components.quantity,components.max_quantity
                 from stack
-                join components on stack.component_id = components.id", dataSource.OpenConnection());
+                left join components on stack.component_id = components.id", dataSource.OpenConnection());
         var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
@@ -186,10 +186,11 @@ class DBController
             new StackItem
             {
                 StackId = reader.GetInt32(0),
-                ComponentId = reader.GetValue(1) as int?,
-                ComponentName = reader.GetString(2),
-                ComponentQuantity = reader.GetValue(3) as int?,
-                ComponentMaxQuantity = reader.GetValue(4) as int?
+                ComponentId = (await reader.IsDBNullAsync(1)) ? null : reader.GetInt32(1),
+                ComponentName = (await reader.IsDBNullAsync(2)) ? null : reader.GetString(2),
+                ComponentQuantity = (await reader.IsDBNullAsync(3)) ? null : reader.GetInt32(3),
+                ComponentMaxQuantity = (await reader.IsDBNullAsync(4)) ? null : reader.GetInt32(4)
+                
             });
         }
         return stackItems;
@@ -269,4 +270,9 @@ class DBController
         return results;
     }
 
+    public async Task<Result> JoinStack(StackItem componentItem)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"select * from projects", dataSource.OpenConnection());
+    }
 }

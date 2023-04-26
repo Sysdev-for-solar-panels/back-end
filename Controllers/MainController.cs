@@ -204,4 +204,11 @@ public class LoginController : ControllerBase
             };
         return result;
     }
+
+    [HttpPost("join-stack")]
+    [Authorize(Roles = "raktarvezeto")]
+    public async Task<ActionResult> JoinStack([FromBody] StackItem componentItem)
+    {
+        
+    }
 }
