@@ -161,7 +161,7 @@ public class LoginController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "raktarvezeto")]
+    [Authorize(Roles = "raktarvezeto,szakember")]
     [HttpGet("list-components")]
     public async Task<ActionResult> ListComponent()
     {
