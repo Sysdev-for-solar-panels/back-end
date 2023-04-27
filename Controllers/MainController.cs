@@ -244,4 +244,24 @@ public class LoginController : ControllerBase
             return Ok(JsonSerializer.Serialize(result));
         }
     }
+
+    [HttpPost("set-project-components")]
+    [Authorize(Roles = "szakember")]
+    public ActionResult SetProjectComponents([FromBody] ProjectComponents projectComponents)
+    {
+        var result = new DBController().SetProjectComponents(projectComponents.ProjectId,projectComponents.ComponentId!) switch {
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully filled up project components"})),
+                DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Internal error"})),
+                _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
+            };
+        
+        return result;
+    }
+
+    // [HttpGet("estimate")]
+    // [Authorize(Roles = "szakember")]
+    // public async Task<ActionResult> EstimateProject([FromBody] EstimateProject estimateProject)
+    // {
+
+    // }
 }

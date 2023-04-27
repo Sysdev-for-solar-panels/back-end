@@ -306,4 +306,37 @@ class DBController
             return Result.DbException;
         }
     }
+
+    public Result SetProjectComponents(int projectId, List<int> componentId)
+    {
+        try 
+        {
+            componentId.ForEach(async (id) => 
+            {
+                await using var command = dataSource.CreateCommand($"INSERT INTO project_components values({projectId},{id})");
+                await using var reader = await command.ExecuteReaderAsync();
+            });
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
+    }
+
+    public async Task<EstimateProject> EstimateProject()
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"Select sum(c.price)*1.4 from reservations 
+            reservations join projects p on p.id=r.project_id 
+            join project_components pc on p.id=pc.project_id 
+            join components c on pc.component_id=c.id", dataSource.OpenConnection());
+
+        var reader = await cmd.ExecuteReaderAsync();
+        reader.Read();
+        return new EstimateProject
+        {
+            Price = reader.GetInt32(0)
+        };
+    }
 }
