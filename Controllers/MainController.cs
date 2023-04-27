@@ -197,7 +197,7 @@ public class LoginController : ControllerBase
     [Authorize(Roles = "raktarvezeto")]
     public async Task<ActionResult> UpdateComponent([FromBody] Component comp)
     {
-        var result = await new DBController().UpdateComponent(comp.ID, comp.quantity) switch {
+        var result = await new DBController().UpdateComponent(comp.ID, comp.Quantity) switch {
                 DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully updated new component"})),
                 DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Bad request"})),
                 _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Bad request"}))

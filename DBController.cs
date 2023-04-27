@@ -165,7 +165,9 @@ class DBController
                 {
                     ID = reader.GetInt32(0),
                     Name = reader.GetString(1), 
-                    Price = reader.GetInt32(2)
+                    Price = reader.GetInt32(2),
+                    Status = reader.GetString(5),
+                    Quantity = reader.GetInt32(6), 
                 }
             );
         }

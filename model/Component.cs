@@ -10,5 +10,7 @@ public class Component
 
     public int ID {get; set;}
 
-    public int quantity {get;set;}
+    public int Quantity {get;set;}
+
+    public string? Status {get;set;}
 }
