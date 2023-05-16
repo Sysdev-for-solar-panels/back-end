@@ -261,6 +261,7 @@ class DBController
             results.Add(
             new Project
                 {
+                    ID = reader.GetInt32(0),
                     name = reader.GetString(1),
                     description = reader.GetString(2), 
                     status = reader.GetString(3),
@@ -340,5 +341,59 @@ class DBController
         {
             Price = reader.GetInt32(0)
         };
+    }
+
+    public async Task<List<MissingComponent>> MissingComponent()
+    {
+        List<MissingComponent> missingComponents = new List<MissingComponent>();
+        await using var cmd = new NpgsqlCommand(
+            @"SELECT p.name AS project_name, c.name AS component_name, c.quantity AS component_quantity, r.quantity AS reservation_quantity
+            FROM projects p
+            JOIN components c ON p.id = c.id
+            JOIN reservations r ON c.id = r.id;", dataSource.OpenConnection());
+        var reader = await cmd.ExecuteReaderAsync();
+        while (reader.Read())
+        {
+            String projectName =  reader.GetString(0);
+            String componentName = reader.GetString(1);
+            int componentQuantiy = reader.GetInt32(2);
+            int reservationQuantity = reader.GetInt32(3);
+
+            if ((componentQuantiy - reservationQuantity) < 0)
+            {
+                missingComponents.Add(
+                    new MissingComponent
+                    {
+                        ProjectName = projectName,
+                        ComponentQuantity = componentQuantiy,
+                        Name = componentName,
+                        Reserved = reservationQuantity
+                    }
+                );
+            }
+        }
+        return missingComponents;
+    }
+
+    public async Task<Result> ChangeProjectStatus(int id)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"UPDATE projects SET status= 'InProgress' WHERE id = @p1", dataSource.OpenConnection())
+            {
+                Parameters =
+                {
+                    new("p1", id),
+                }
+            };
+
+        try 
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
     }
 }

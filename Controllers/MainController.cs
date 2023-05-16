@@ -231,7 +231,7 @@ public class LoginController : ControllerBase
     }
 
     [HttpGet("list-project")]
-    [Authorize(Roles = "szakember")]
+    [Authorize(Roles = "szakember,raktaros")]
     public async Task<ActionResult> ListProject()
     {
         var result = await new DBController().ListProjects();
@@ -258,10 +258,32 @@ public class LoginController : ControllerBase
         return result;
     }
 
-    // [HttpGet("estimate")]
-    // [Authorize(Roles = "szakember")]
-    // public async Task<ActionResult> EstimateProject([FromBody] EstimateProject estimateProject)
-    // {
+    [HttpGet("missing-component")]
+    [Authorize(Roles = "raktarvezeto")]
+    public async Task<ActionResult> missingComponent() 
+    {
+        List<MissingComponent> result = await new DBController().MissingComponent();
 
-    // }
+        if (result.Count == 0)
+        {
+            return Ok(JsonSerializer.Serialize(new {Message =  "There is no missing component!"}));
+        }
+        else 
+        {
+            return Ok(JsonSerializer.Serialize(result));
+        }
+    }
+
+    [HttpPost("project-status")]
+    [Authorize(Roles = "raktaros")]
+    public async Task<ActionResult> ChangeStatus([FromBody] ChangeStatus newStatus)
+    {
+        var result = await new DBController().ChangeProjectStatus(newStatus.ID) switch {
+            DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the status"})),
+            DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "There is no project like that"})),
+            _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
+        };
+
+        return result;
+    }
 }
