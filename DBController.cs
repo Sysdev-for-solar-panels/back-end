@@ -347,27 +347,27 @@ class DBController
     {
         List<MissingComponent> missingComponents = new List<MissingComponent>();
         await using var cmd = new NpgsqlCommand(
-            @"SELECT p.name AS project_name, c.name AS component_name, c.quantity AS component_quantity, r.quantity AS reservation_quantity
-            FROM projects p
-            JOIN components c ON p.id = c.id
-            JOIN reservations r ON c.id = r.id;", dataSource.OpenConnection());
+            @"SELECT c.id, c.name, c.quantity - COALESCE(SUM(r.quantity), 0) AS hiany
+            FROM components c
+            LEFT JOIN reservations r ON c.id = r.id
+            GROUP BY c.id, c.name
+            HAVING c.quantity - COALESCE(SUM(r.quantity), 0) < 0;", dataSource.OpenConnection());
         var reader = await cmd.ExecuteReaderAsync();
         while (reader.Read())
         {
-            String projectName =  reader.GetString(0);
-            String componentName = reader.GetString(1);
-            int componentQuantiy = reader.GetInt32(2);
-            int reservationQuantity = reader.GetInt32(3);
 
-            if ((componentQuantiy - reservationQuantity) < 0)
+            int componentID = reader.GetInt32(0);
+            String componentName = reader.GetString(1);
+            int missingPart = reader.GetInt32(2);
+
+            if (missingPart < 0)
             {
                 missingComponents.Add(
                     new MissingComponent
                     {
-                        ProjectName = projectName,
-                        ComponentQuantity = componentQuantiy,
-                        Name = componentName,
-                        Reserved = reservationQuantity
+                        ComponentID = componentID,
+                        ComponentName = componentName,
+                        MissingPart = missingPart
                     }
                 );
             }
