@@ -1,6 +1,6 @@
 namespace back_end;
 
-public class Project
+public class PriceCalculate
 {
     public string? name {get; set;}
 
@@ -8,7 +8,7 @@ public class Project
 
     public string? status {get; set;}
 
-    public int user_id {get; set;}
+    public int pojectPrice{get; set;}
 
-    public string? Location{get; set;}
+    public int compPrice{get; set;}
 }

@@ -1,5 +1,6 @@
 using Npgsql;
 using back_end;
+using System.Diagnostics;
 
 class DBController
 {
@@ -261,7 +262,6 @@ class DBController
             results.Add(
             new Project
                 {
-                    ID = reader.GetInt32(0),
                     name = reader.GetString(1),
                     description = reader.GetString(2), 
                     status = reader.GetString(3),
@@ -327,7 +327,7 @@ class DBController
         }
     }
 
-    public async Task<EstimateProject> EstimateProject()
+    /*public async Task<EstimateProject> EstimateProject()
     {
         await using var cmd = new NpgsqlCommand(
             @"Select sum(c.price)*1.4 from reservations 
@@ -341,48 +341,17 @@ class DBController
         {
             Price = reader.GetInt32(0)
         };
-    }
-
-    public async Task<List<MissingComponent>> MissingComponent()
-    {
-        List<MissingComponent> missingComponents = new List<MissingComponent>();
-        await using var cmd = new NpgsqlCommand(
-            @"SELECT p.name AS project_name, c.name AS component_name, c.quantity AS component_quantity, r.quantity AS reservation_quantity
-            FROM projects p
-            JOIN components c ON p.id = c.id
-            JOIN reservations r ON c.id = r.id;", dataSource.OpenConnection());
-        var reader = await cmd.ExecuteReaderAsync();
-        while (reader.Read())
-        {
-            String projectName =  reader.GetString(0);
-            String componentName = reader.GetString(1);
-            int componentQuantiy = reader.GetInt32(2);
-            int reservationQuantity = reader.GetInt32(3);
-
-            if ((componentQuantiy - reservationQuantity) < 0)
-            {
-                missingComponents.Add(
-                    new MissingComponent
-                    {
-                        ProjectName = projectName,
-                        ComponentQuantity = componentQuantiy,
-                        Name = componentName,
-                        Reserved = reservationQuantity
-                    }
-                );
-            }
-        }
-        return missingComponents;
-    }
-
-    public async Task<Result> ChangeProjectStatus(int id)
+    }*/
+    public async Task<Result> AddTimeAndPrice(string pName, int time, int price)
     {
         await using var cmd = new NpgsqlCommand(
-            @"UPDATE projects SET status= 'InProgress' WHERE id = @p1", dataSource.OpenConnection())
+            @"update projects set process_time = @p1, process_price = @p2 where name = @p3", dataSource.OpenConnection())
             {
                 Parameters =
                 {
-                    new("p1", id),
+                    new("p1", time),
+                    new("p2", price),
+                    new("p3", pName)
                 }
             };
 
@@ -393,6 +362,55 @@ class DBController
         }
         catch
         {
+            return Result.DbException;
+        }
+    }
+    public async Task<List<PriceCalculate>> GetPriceCalculate()
+{
+    List<PriceCalculate> results = new List<PriceCalculate>();
+    await using var cmd = new NpgsqlCommand(
+        @"SELECT p.name, p.description, p.status, SUM(p.process_price), SUM(c.price) FROM projects p
+          JOIN project_components pc ON p.id = pc.project_id 
+          JOIN components c ON pc.component_id = c.id
+          WHERE p.status = 'Wait' OR p.status = 'Scheduled'
+          GROUP BY p.name, p.description, p.status", dataSource.OpenConnection());
+
+    var reader = await cmd.ExecuteReaderAsync();
+    while (await reader.ReadAsync())
+    {
+        results.Add(new PriceCalculate
+        {
+            name = reader.GetString(0),
+            description = reader.GetString(1),
+            status = reader.GetString(2),
+            pojectPrice = reader.GetInt32(3),
+            compPrice = reader.GetInt32(4)
+        });
+    }
+
+    return results;
+    
+}
+    public async Task<Result> SetProjectStatus(string pName, string status)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"update projects set status = @p1 where name = @p2", dataSource.OpenConnection())
+            {
+                Parameters =
+                {
+                    new("p1", status),
+                    new("p2", pName)
+                }
+            };
+
+        try
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch (System.Data.Common.DbException err)
+        {
+            Console.Error.WriteLine(err);
             return Result.DbException;
         }
     }
