@@ -286,4 +286,22 @@ public class LoginController : ControllerBase
 
         return result;
     }
+
+    [HttpPost("component-location")]
+    [Authorize(Roles = "raktaros")]
+    public async Task<ActionResult> ComponentLocation([FromBody] ProjectID project)
+    {
+        var result = await new DBController().ComponentLocations(project.ID);
+
+        if (result.Count == 0) 
+        {
+            return Ok(JsonSerializer.Serialize(new {Message =  "There is no component"}));
+        }
+        else
+        {
+            return Ok(JsonSerializer.Serialize(result));
+        }
+    }
+
+    
 }

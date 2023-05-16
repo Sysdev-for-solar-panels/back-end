@@ -378,13 +378,13 @@ class DBController
     public async Task<Result> ChangeProjectStatus(int id)
     {
         await using var cmd = new NpgsqlCommand(
-            @"UPDATE projects SET status= 'InProgress' WHERE id = @p1", dataSource.OpenConnection())
+        @"UPDATE projects SET status= 'InProgress' WHERE id = @p1", dataSource.OpenConnection())
+        {
+            Parameters =
             {
-                Parameters =
-                {
-                    new("p1", id),
-                }
-            };
+                new("p1", id),
+            }
+        };
 
         try 
         {
@@ -395,5 +395,51 @@ class DBController
         {
             return Result.DbException;
         }
+    }
+
+    public async Task<List<ComponentLocation>> ComponentLocations(int id)
+    {
+        List<ComponentLocation> locations = new List<ComponentLocation>();
+
+        await using var cmd = new NpgsqlCommand(
+        @"WITH projekt_adatok AS (
+            SELECT c.name, s.x, s.y, s.z,
+                ROW_NUMBER() OVER (ORDER BY s.x, s.y, s.z) AS utvonal
+        FROM components c
+        JOIN stack s ON c.id = s.component_id
+        JOIN reservations r ON c.id = r.item_id
+        WHERE r.project_id = @p1
+        )
+
+        SELECT *
+        FROM projekt_adatok
+        ORDER BY utvonal;", dataSource.OpenConnection())
+            {
+                Parameters = 
+                {
+                    new("p1",id)
+                }
+            };
+        var reader = await cmd.ExecuteReaderAsync();
+        while(await reader.ReadAsync())
+        {
+            
+            String componentName = reader.GetString(0);
+            int x = reader.GetInt32(1);
+            int y = reader.GetInt32(2);
+            int z = reader.GetInt32(3);
+
+            locations.Add(
+                new ComponentLocation
+                {
+                    ComponentName = componentName,
+                    X = x,
+                    Y = y,
+                    Z = z,
+                }
+            );
+        }
+
+        return locations;
     }
 }
