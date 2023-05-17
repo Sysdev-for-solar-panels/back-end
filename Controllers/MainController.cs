@@ -274,6 +274,22 @@ public class LoginController : ControllerBase
         }
     }
 
+    [HttpGet("reserved-missing-component")]
+    [Authorize(Roles = "raktarvezeto")]
+    public async Task<ActionResult> ReservedMissingComponent() 
+    {
+        List<ReservedMissingComponent> result = await new DBController().ReservedMissingComponent();
+
+        if (result.Count == 0)
+        {
+            return Ok(JsonSerializer.Serialize(new {Message =  "There is no missing component!"}));
+        }
+        else 
+        {
+            return Ok(JsonSerializer.Serialize(result));
+        }
+    }
+
     [HttpPost("project-status")]
     [Authorize(Roles = "raktaros")]
     public async Task<ActionResult> ChangeStatus([FromBody] ChangeStatus newStatus)
