@@ -1,6 +1,6 @@
 using Npgsql;
 using back_end;
-using System.Diagnostics;
+using NpgsqlTypes;
 
 class DBController
 {
@@ -262,6 +262,7 @@ class DBController
             results.Add(
             new Project
                 {
+                    ID = reader.GetInt32(0),
                     name = reader.GetString(1),
                     description = reader.GetString(2), 
                     status = reader.GetString(3),
@@ -310,15 +311,20 @@ class DBController
         }
     }
 
-    public Result SetProjectComponents(int projectId, List<int> componentId)
+    public async Task<Result> SetProjectComponents(int projectId, int componentId)
     {
+        await using var cmd = new NpgsqlCommand(
+            @"INSERT INTO project_components VALUES (@p1, @p2)", dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new NpgsqlParameter("@p1", NpgsqlDbType.Integer) { Value = projectId },
+                new NpgsqlParameter("@p2", NpgsqlDbType.Integer) { Value = componentId }
+            }
+        };
         try 
         {
-            componentId.ForEach(async (id) => 
-            {
-                await using var command = dataSource.CreateCommand($"INSERT INTO project_components values({projectId},{id})");
-                await using var reader = await command.ExecuteReaderAsync();
-            });
+            await cmd.ExecuteNonQueryAsync();
             return Result.Ok;
         }
         catch
@@ -327,7 +333,7 @@ class DBController
         }
     }
 
-    /*public async Task<EstimateProject> EstimateProject()
+    public async Task<EstimateProject> EstimateProject()
     {
         await using var cmd = new NpgsqlCommand(
             @"Select sum(c.price)*1.4 from reservations 
@@ -341,19 +347,93 @@ class DBController
         {
             Price = reader.GetInt32(0)
         };
-    }*/
-    public async Task<Result> AddTimeAndPrice(string pName, int time, int price)
+    }
+
+    public async Task<List<MissingComponent>> MissingComponent()
+    {
+        List<MissingComponent> missingComponents = new List<MissingComponent>();
+        await using var cmd = new NpgsqlCommand(
+                    @"SELECT c.id, c.name, c.quantity - COALESCE(SUM(r.quantity), 0) AS hiany
+        FROM components c
+        LEFT JOIN reservations r ON c.id = r.item_id
+        GROUP BY c.id, c.name, c.quantity
+        HAVING c.quantity - COALESCE(SUM(r.quantity), 0) < 0;", dataSource.OpenConnection());
+        var reader = await cmd.ExecuteReaderAsync();
+        while (reader.Read())
+        {
+
+            int componentID = reader.GetInt32(0);
+            String componentName = reader.GetString(1);
+            int missingPart = reader.GetInt32(2);
+
+            if (missingPart < 0)
+            {
+                missingComponents.Add(
+                    new MissingComponent
+                    {
+                        ComponentID = componentID,
+                        ComponentName = componentName,
+                        MissingPart = missingPart
+                    }
+                );
+            }
+        }
+        return missingComponents;
+    }
+    public async Task<List<ReservedMissingComponent>> ReservedMissingComponent()
+    {
+        List<ReservedMissingComponent> ReservedmissingComponents = new List<ReservedMissingComponent>();
+        await using var cmd = new NpgsqlCommand(
+            @"SELECT h.id, h.name, h.hianyDarab, r.lefoglalt_mennyiseg
+                FROM (
+            SELECT c.id, c.name, c.quantity - COALESCE(SUM(r.quantity), 0) AS hianyDarab
+                FROM components c
+                LEFT JOIN reservations r ON c.id = r.item_id
+                GROUP BY c.id, c.name, c.quantity
+                HAVING c.quantity - COALESCE(SUM(r.quantity), 0) < 0
+                ) AS h
+                INNER JOIN (
+                SELECT item_id, SUM(quantity) AS lefoglalt_mennyiseg
+                FROM reservations
+                GROUP BY item_id
+            ) AS r ON h.id = r.item_id;", dataSource.OpenConnection());
+        var reader = await cmd.ExecuteReaderAsync();
+        while (reader.Read())
+        {
+
+            int componentID = reader.GetInt32(0);
+            String componentName = reader.GetString(1);
+            int missingPart = reader.GetInt32(2);
+            int reservedPart = reader.GetInt32(3);
+
+            if (missingPart < 0)
+            {
+                ReservedmissingComponents.Add(
+                    new ReservedMissingComponent
+                    {
+                        ComponentID = componentID,
+                        ComponentName = componentName,
+                        MissingPart = missingPart,
+                        ReservedPart = reservedPart
+                    }
+                );
+            }
+        }
+        return ReservedmissingComponents;
+    }
+
+
+
+    public async Task<Result> ChangeProjectStatus(int id)
     {
         await using var cmd = new NpgsqlCommand(
-            @"update projects set process_time = @p1, process_price = @p2 where name = @p3", dataSource.OpenConnection())
+        @"UPDATE projects SET status= 'InProgress' WHERE id = @p1", dataSource.OpenConnection())
+        {
+            Parameters =
             {
-                Parameters =
-                {
-                    new("p1", time),
-                    new("p2", price),
-                    new("p3", pName)
-                }
-            };
+                new("p1", id),
+            }
+        };
 
         try 
         {
@@ -365,32 +445,52 @@ class DBController
             return Result.DbException;
         }
     }
-    public async Task<List<PriceCalculate>> GetPriceCalculate()
-{
-    List<PriceCalculate> results = new List<PriceCalculate>();
-    await using var cmd = new NpgsqlCommand(
-        @"SELECT p.name, p.description, p.status, SUM(p.process_price), SUM(c.price) FROM projects p
-          JOIN project_components pc ON p.id = pc.project_id 
-          JOIN components c ON pc.component_id = c.id
-          WHERE p.status = 'Wait' OR p.status = 'Scheduled'
-          GROUP BY p.name, p.description, p.status", dataSource.OpenConnection());
 
-    var reader = await cmd.ExecuteReaderAsync();
-    while (await reader.ReadAsync())
+    public async Task<List<ComponentLocation>> ComponentLocations(int id)
     {
-        results.Add(new PriceCalculate
-        {
-            name = reader.GetString(0),
-            description = reader.GetString(1),
-            status = reader.GetString(2),
-            pojectPrice = reader.GetInt32(3),
-            compPrice = reader.GetInt32(4)
-        });
-    }
+        List<ComponentLocation> locations = new List<ComponentLocation>();
 
-    return results;
-    
-}
+        await using var cmd = new NpgsqlCommand(
+        @"WITH projekt_adatok AS (
+            SELECT c.name, s.x, s.y, s.z,
+                ROW_NUMBER() OVER (ORDER BY s.x, s.y, s.z) AS utvonal
+        FROM components c
+        JOIN stack s ON c.id = s.component_id
+        JOIN reservations r ON c.id = r.item_id
+        WHERE r.project_id = @p1
+        )
+
+        SELECT *
+        FROM projekt_adatok
+        ORDER BY utvonal;", dataSource.OpenConnection())
+            {
+                Parameters = 
+                {
+                    new("p1",id)
+                }
+            };
+        var reader = await cmd.ExecuteReaderAsync();
+        while(await reader.ReadAsync())
+        {
+            
+            String componentName = reader.GetString(0);
+            int x = reader.GetInt32(1);
+            int y = reader.GetInt32(2);
+            int z = reader.GetInt32(3);
+
+            locations.Add(
+                new ComponentLocation
+                {
+                    ComponentName = componentName,
+                    X = x,
+                    Y = y,
+                    Z = z,
+                }
+            );
+        }
+
+        return locations;
+    }
     public async Task<Result> SetProjectStatus(string pName, string status)
     {
         await using var cmd = new NpgsqlCommand(

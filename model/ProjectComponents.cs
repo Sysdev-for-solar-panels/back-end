@@ -4,5 +4,5 @@ public class ProjectComponents
 {
     public int ProjectId { get; set; }
 
-    public List<int>? ComponentId { get; set; }
+    public int ComponentId { get; set; }
 }

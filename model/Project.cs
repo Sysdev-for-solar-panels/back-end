@@ -11,4 +11,6 @@ public class Project
     public int user_id {get; set;}
 
     public string? Location{get; set;}
+
+    public int ID {get;set;}
 }

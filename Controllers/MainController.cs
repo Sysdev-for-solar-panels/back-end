@@ -161,7 +161,7 @@ public class LoginController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "raktarvezeto,szakember,raktaros")]
+    [Authorize(Roles = "raktarvezeto,szakember")]
     [HttpGet("list-components")]
     public async Task<ActionResult> ListComponent()
     {
@@ -247,44 +247,15 @@ public class LoginController : ControllerBase
 
     [HttpPost("set-project-components")]
     [Authorize(Roles = "szakember")]
-    public IActionResult SetProjectComponents([FromBody] ProjectComponents projectComponents)
+    public async Task<ActionResult> SetProjectComponents([FromBody] ProjectComponents projectComponents)
     {
-        var result = new DBController().SetProjectComponents(projectComponents.ProjectId,projectComponents.ComponentId!) switch {
+        var result = await new DBController().SetProjectComponents(projectComponents.ProjectId!,projectComponents.ComponentId!) switch {
                 DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully filled up project components"})),
                 DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Internal error"})),
                 _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
             };
         
         return result;
-    }
-
-    [HttpPost("add-time-and-price")]
-    [Authorize(Roles = "szakember")]
-    public async Task<IActionResult> AddTimeAndPrice([FromBody] TimeAndPrice timeAndPrice)
-    {
-        var result = await new DBController().AddTimeAndPrice(timeAndPrice.ProjectName!, timeAndPrice.Time, timeAndPrice.Price) switch
-        {
-            DBController.Result.Ok => Ok(JsonSerializer.Serialize(new { Message = "Succesfully filled up project time and price" })),
-            DBController.Result.DbException => StatusCode(500, JsonSerializer.Serialize(new { Message = "Internal error" })),
-            _ => StatusCode(500, JsonSerializer.Serialize(new { Message = "Internal error" }))
-        };
-
-        return result;
-}
-
-    [HttpGet("price-calculate")]
-    [Authorize(Roles = "szakember")]
-    public async Task<IActionResult> PriceCalculate()
-    {
-        var result = await new DBController().GetPriceCalculate();
-        if (result.Count == 0)
-        {
-            return StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}));
-        }
-        else
-        {
-            return Ok(JsonSerializer.Serialize(result));
-        }
     }
 
     [HttpPost("project-status")]
@@ -301,4 +272,66 @@ public class LoginController : ControllerBase
     return result;
 }
 
+    [HttpGet("missing-component")]
+    [Authorize(Roles = "raktarvezeto")]
+    public async Task<ActionResult> missingComponent() 
+    {
+        List<MissingComponent> result = await new DBController().MissingComponent();
+
+        if (result.Count == 0)
+        {
+            return Ok(JsonSerializer.Serialize(new {Message =  "There is no missing component!"}));
+        }
+        else 
+        {
+            return Ok(JsonSerializer.Serialize(result));
+        }
+    }
+
+    [HttpGet("reserved-missing-component")]
+    [Authorize(Roles = "raktarvezeto")]
+    public async Task<ActionResult> ReservedMissingComponent() 
+    {
+        List<ReservedMissingComponent> result = await new DBController().ReservedMissingComponent();
+
+        if (result.Count == 0)
+        {
+            return Ok(JsonSerializer.Serialize(new {Message =  "There is no missing component!"}));
+        }
+        else 
+        {
+            return Ok(JsonSerializer.Serialize(result));
+        }
+    }
+
+    [HttpPost("project-status")]
+    [Authorize(Roles = "raktaros")]
+    public async Task<ActionResult> ChangeStatus([FromBody] ChangeStatus newStatus)
+    {
+        var result = await new DBController().ChangeProjectStatus(newStatus.ID) switch {
+            DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the status"})),
+            DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "There is no project like that"})),
+            _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
+        };
+
+        return result;
+    }
+
+    [HttpPost("component-location")]
+    [Authorize(Roles = "raktaros")]
+    public async Task<ActionResult> ComponentLocation([FromBody] ProjectID project)
+    {
+        var result = await new DBController().ComponentLocations(project.ID);
+
+        if (result.Count == 0) 
+        {
+            return Ok(JsonSerializer.Serialize(new {Message =  "There is no component"}));
+        }
+        else
+        {
+            return Ok(JsonSerializer.Serialize(result));
+        }
+    }
+
+    
 }
