@@ -333,21 +333,58 @@ class DBController
         }
     }
 
-    public async Task<EstimateProject> EstimateProject()
+    public async Task<Result> AddTimeAndPrice(string pName, int time, int price)
     {
+        
         await using var cmd = new NpgsqlCommand(
-            @"Select sum(c.price)*1.4 from reservations 
-            reservations join projects p on p.id=r.project_id 
-            join project_components pc on p.id=pc.project_id 
-            join components c on pc.component_id=c.id", dataSource.OpenConnection());
+            @"update projects set process_time = @p1, process_price = @p2 where name = @p3", dataSource.OpenConnection())
+            {
+                Parameters =
+                {
+                    new NpgsqlParameter("@p3", NpgsqlDbType.Text) { Value = pName },
+                    new NpgsqlParameter("@p1", NpgsqlDbType.Integer) { Value = time },
+                    new NpgsqlParameter("@p2", NpgsqlDbType.Integer) { Value = price }
+                }
+            };
 
-        var reader = await cmd.ExecuteReaderAsync();
-        reader.Read();
-        return new EstimateProject
+        try 
         {
-            Price = reader.GetInt32(0)
-        };
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
     }
+
+    public async Task<List<PriceCalculate>> GetPriceCalculate()
+{
+    List<PriceCalculate> results = new List<PriceCalculate>();
+    await using var cmd = new NpgsqlCommand(
+        @"SELECT p.name AS project_name, p.description AS Leiras, p.status AS Status, (SUM(c.price * 1.7) + p.process_price) AS total_price
+            FROM projects p
+            JOIN project_components pc ON p.id = pc.project_id
+            JOIN components c ON pc.component_id = c.id
+            WHERE p.status IN ('Scheduled', 'Wait') 
+            GROUP BY p.id, p.name, p.description,p.status", dataSource.OpenConnection());
+
+    var reader = await cmd.ExecuteReaderAsync();
+    while (await reader.ReadAsync())
+    {
+        results.Add(new PriceCalculate
+        {
+            name = reader.GetString(0),
+            description = reader.GetString(1),
+            status = reader.GetString(2),
+            sumPrice = reader.GetInt32(3),
+        });
+    }
+
+    return results;
+    
+}
+
 
     public async Task<List<MissingComponent>> MissingComponent()
     {
