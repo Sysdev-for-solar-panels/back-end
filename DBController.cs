@@ -1,5 +1,6 @@
 using Npgsql;
 using back_end;
+using NpgsqlTypes;
 
 class DBController
 {
@@ -310,15 +311,20 @@ class DBController
         }
     }
 
-    public Result SetProjectComponents(int projectId, List<int> componentId)
+    public async Task<Result> SetProjectComponents(int projectId, int componentId)
     {
+        await using var cmd = new NpgsqlCommand(
+            @"INSERT INTO project_components VALUES (@p1, @p2)", dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new NpgsqlParameter("@p1", NpgsqlDbType.Integer) { Value = projectId },
+                new NpgsqlParameter("@p2", NpgsqlDbType.Integer) { Value = componentId }
+            }
+        };
         try 
         {
-            componentId.ForEach(async (id) => 
-            {
-                await using var command = dataSource.CreateCommand($"INSERT INTO project_components values({projectId},{id})");
-                await using var reader = await command.ExecuteReaderAsync();
-            });
+            await cmd.ExecuteNonQueryAsync();
             return Result.Ok;
         }
         catch
@@ -327,21 +333,58 @@ class DBController
         }
     }
 
-    public async Task<EstimateProject> EstimateProject()
+    public async Task<Result> AddTimeAndPrice(string pName, int time, int price)
     {
+        
         await using var cmd = new NpgsqlCommand(
-            @"Select sum(c.price)*1.4 from reservations 
-            reservations join projects p on p.id=r.project_id 
-            join project_components pc on p.id=pc.project_id 
-            join components c on pc.component_id=c.id", dataSource.OpenConnection());
+            @"update projects set process_time = @p1, process_price = @p2 where name = @p3", dataSource.OpenConnection())
+            {
+                Parameters =
+                {
+                    new NpgsqlParameter("@p3", NpgsqlDbType.Text) { Value = pName },
+                    new NpgsqlParameter("@p1", NpgsqlDbType.Integer) { Value = time },
+                    new NpgsqlParameter("@p2", NpgsqlDbType.Integer) { Value = price }
+                }
+            };
 
-        var reader = await cmd.ExecuteReaderAsync();
-        reader.Read();
-        return new EstimateProject
+        try 
         {
-            Price = reader.GetInt32(0)
-        };
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
     }
+
+    public async Task<List<PriceCalculate>> GetPriceCalculate()
+    {
+    List<PriceCalculate> results = new List<PriceCalculate>();
+    await using var cmd = new NpgsqlCommand(
+        @"SELECT p.name AS project_name, p.description AS Leiras, p.status AS Status, (SUM(c.price * 1.7) + p.process_price) AS total_price
+            FROM projects p
+            JOIN project_components pc ON p.id = pc.project_id
+            JOIN components c ON pc.component_id = c.id
+            WHERE p.status IN ('Scheduled', 'Wait') 
+            GROUP BY p.id, p.name, p.description,p.status", dataSource.OpenConnection());
+
+    var reader = await cmd.ExecuteReaderAsync();
+    while (await reader.ReadAsync())
+    {
+        results.Add(new PriceCalculate
+        {
+            name = reader.GetString(0),
+            description = reader.GetString(1),
+            status = reader.GetString(2),
+            sumPrice = reader.GetInt32(3),
+        });
+    }
+
+    return results;
+    
+}
+
 
     public async Task<List<MissingComponent>> MissingComponent()
     {
@@ -484,5 +527,28 @@ class DBController
         }
 
         return locations;
+    }
+    public async Task<Result> SetProjectStatus(string pName, string status)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"update projects set status = @p1 where name = @p2", dataSource.OpenConnection())
+            {
+                Parameters =
+                {
+                    new("p1", status),
+                    new("p2", pName)
+                }
+            };
+
+        try
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch (System.Data.Common.DbException err)
+        {
+            Console.Error.WriteLine(err);
+            return Result.DbException;
+        }
     }
 }
