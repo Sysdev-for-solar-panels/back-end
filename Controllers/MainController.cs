@@ -288,7 +288,7 @@ public class LoginController : ControllerBase
     }
 
 
-    [HttpPost("project-status")]
+    [HttpPost("project-close_fail")]
     [Authorize(Roles = "szakember")]
     public async Task<IActionResult> ProjectStatus([FromBody] ProjectStat projectStat)
 {
