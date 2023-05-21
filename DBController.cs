@@ -411,20 +411,17 @@ class DBController
     {
         List<MissingComponent> missingComponents = new List<MissingComponent>();
         await using var cmd = new NpgsqlCommand(
-                    @"SELECT c.id, c.name, c.quantity - COALESCE(SUM(r.quantity), 0) AS hiany
-        FROM components c
-        LEFT JOIN reservations r ON c.id = r.item_id
-        GROUP BY c.id, c.name, c.quantity
-        HAVING c.quantity - COALESCE(SUM(r.quantity), 0) < 0;", dataSource.OpenConnection());
+                    @"SELECT id, name, (max_quantity  - quantity) AS hiany
+                        FROM components
+                        WHERE quantity < max_quantity;", dataSource.OpenConnection());
         var reader = await cmd.ExecuteReaderAsync();
         while (reader.Read())
         {
-
             int componentID = reader.GetInt32(0);
             String componentName = reader.GetString(1);
             int missingPart = reader.GetInt32(2);
 
-            if (missingPart < 0)
+            if (missingPart > 0)
             {
                 missingComponents.Add(
                     new MissingComponent
@@ -442,19 +439,14 @@ class DBController
     {
         List<ReservedMissingComponent> ReservedmissingComponents = new List<ReservedMissingComponent>();
         await using var cmd = new NpgsqlCommand(
-            @"SELECT h.id, h.name, h.hianyDarab, r.lefoglalt_mennyiseg
-                FROM (
-            SELECT c.id, c.name, c.quantity - COALESCE(SUM(r.quantity), 0) AS hianyDarab
+            @"SELECT c.id, c.name, (c.max_quantity - c.quantity - COALESCE(r.total_quantity, 0)), c.quantity
                 FROM components c
-                LEFT JOIN reservations r ON c.id = r.item_id
-                GROUP BY c.id, c.name, c.quantity
-                HAVING c.quantity - COALESCE(SUM(r.quantity), 0) < 0
-                ) AS h
                 INNER JOIN (
-                SELECT item_id, SUM(quantity) AS lefoglalt_mennyiseg
+                SELECT item_id, SUM(quantity) AS total_quantity
                 FROM reservations
                 GROUP BY item_id
-            ) AS r ON h.id = r.item_id;", dataSource.OpenConnection());
+                ) r ON c.id = r.item_id
+                WHERE (c.quantity + COALESCE(r.total_quantity, 0)) < c.max_quantity;", dataSource.OpenConnection());
         var reader = await cmd.ExecuteReaderAsync();
         while (reader.Read())
         {
@@ -464,7 +456,7 @@ class DBController
             int missingPart = reader.GetInt32(2);
             int reservedPart = reader.GetInt32(3);
 
-            if (missingPart < 0)
+            if (missingPart > 0)
             {
                 ReservedmissingComponents.Add(
                     new ReservedMissingComponent
