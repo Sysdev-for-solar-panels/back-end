@@ -125,17 +125,18 @@ class DBController
         }
     }
 
-    public async Task<Result> AddComponent(string name,int price,int maxQuantity)
+    public async Task<Result> AddComponent(string name,int price,int maxQuantity,string status="available")
     {
         await using var cmd = new NpgsqlCommand(
-            @"INSERT INTO components (name,price,max_quantity) 
-                VALUES (@p1, @p2, @p3)",dataSource.OpenConnection())
+            @"INSERT INTO components (name,price,max_quantity,status) 
+                VALUES (@p1, @p2, @p3, @p4)",dataSource.OpenConnection())
         {
             Parameters =
             {
                 new("p1", name),
                 new("p2", price),
-                new("p3", maxQuantity),    
+                new("p3", maxQuantity),
+                new("p4",status)    
             }
         };
 
@@ -332,6 +333,26 @@ class DBController
             return Result.DbException;
         }
     }
+        public async Task<Result> SetProjectToDraft(int id)
+    {
+        await using var cmd = new NpgsqlCommand(
+            @"UPDATE projects SET status='Draft' WHERE id = @p1", dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new NpgsqlParameter("@p1", NpgsqlDbType.Integer) { Value = id },
+            }
+        };
+        try 
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
+    }
 
     public async Task<Result> AddTimeAndPrice(string pName, int time, int price)
     {
@@ -366,7 +387,7 @@ class DBController
             FROM projects p
             JOIN project_components pc ON p.id = pc.project_id
             JOIN components c ON pc.component_id = c.id
-            WHERE p.status IN ('Scheduled', 'Wait') 
+            WHERE p.status IN ('Scheduled') 
             GROUP BY p.id, p.name, p.description,p.status", dataSource.OpenConnection());
 
     var reader = await cmd.ExecuteReaderAsync();
