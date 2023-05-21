@@ -262,7 +262,7 @@ public class LoginController : ControllerBase
     public async Task<ActionResult> SetProjectToDraft([FromBody] Drafter drafter)
     {
         var result = await new DBController().SetProjectToDraft(drafter.id!) switch {
-                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully filled up project components"})),
+                DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Sikeres projekt státusz módosítás!"})),
                 DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "Internal error"})),
                 _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
             };
