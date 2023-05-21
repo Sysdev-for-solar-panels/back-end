@@ -346,7 +346,7 @@ public class LoginController : ControllerBase
         }
     }
 
-    [HttpPost("project-status")]
+    [HttpPost("change-project-status")]
     [Authorize(Roles = "raktaros")]
     public async Task<ActionResult> ChangeStatus([FromBody] ChangeStatus newStatus)
     {
