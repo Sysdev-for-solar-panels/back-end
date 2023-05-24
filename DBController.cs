@@ -383,12 +383,12 @@ class DBController
     {
     List<PriceCalculate> results = new List<PriceCalculate>();
     await using var cmd = new NpgsqlCommand(
-        @"SELECT p.name AS project_name, p.description AS Leiras, p.status AS Status, (SUM(c.price * 1.7) + p.process_price) AS total_price
+        @"SELECT p.id, ((p.process_price + SUM(c.price)) * 1.2) AS ar
             FROM projects p
             JOIN project_components pc ON p.id = pc.project_id
             JOIN components c ON pc.component_id = c.id
-            WHERE p.status IN ('Scheduled') 
-            GROUP BY p.id, p.name, p.description,p.status", dataSource.OpenConnection());
+            WHERE p.status = 'Scheduled'
+            GROUP BY p.id, p.process_price;", dataSource.OpenConnection());
 
     var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
