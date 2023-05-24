@@ -496,6 +496,30 @@ class DBController
         }
     }
 
+    //set project status, 2 parameters
+        public async Task<Result> SetProjectStatus(string status, int id)
+    {
+        await using var cmd = new NpgsqlCommand(
+        @"UPDATE projects SET status= @p1 WHERE id = @p2", dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new("p1", status),
+                new("p2", id),
+            }
+        };
+
+        try 
+        {
+            await cmd.ExecuteNonQueryAsync();
+            return Result.Ok;
+        }
+        catch
+        {
+            return Result.DbException;
+        }
+    }
+
     public async Task<List<ComponentLocation>> ComponentLocations(int id)
     {
         List<ComponentLocation> locations = new List<ComponentLocation>();

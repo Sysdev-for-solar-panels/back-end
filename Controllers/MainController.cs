@@ -359,6 +359,19 @@ public class LoginController : ControllerBase
         return result;
     }
 
+    [HttpPost("set-project-status")]
+    [Authorize(Roles = "szakember")]
+    public async Task<ActionResult> SetProjectStatus([FromBody] SetStatus newStatus)
+    {
+        var result = await new DBController().ChangeProjectStatus(newStatus.ID) switch {
+            DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the status"})),
+            DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "There is no project like that"})),
+            _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))
+        };
+
+        return result;
+    }
+
     [HttpPost("component-location")]
     [Authorize(Roles = "raktaros")]
     public async Task<ActionResult> ComponentLocation([FromBody] ProjectID project)
