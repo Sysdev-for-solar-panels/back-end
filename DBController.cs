@@ -379,7 +379,7 @@ class DBController
         }
     }
 
-    public async Task<List<PriceCalculate>> GetPriceCalculate()
+    public async Task<List<PriceCalculate>> GetPriceCalculate(string state,int id)
     {
     List<PriceCalculate> results = new List<PriceCalculate>();
     await using var cmd = new NpgsqlCommand(
@@ -387,8 +387,15 @@ class DBController
             FROM projects p
             JOIN project_components pc ON p.id = pc.project_id
             JOIN components c ON pc.component_id = c.id
-            WHERE p.status = 'Scheduled'
-            GROUP BY p.id, p.process_price;", dataSource.OpenConnection());
+            WHERE p.status = @p1 AND p.id = @p2
+            GROUP BY p.id, p.process_price;", dataSource.OpenConnection())
+        {
+            Parameters =
+            {
+                new("p1", state),
+                new("p2", id),
+            }
+        };
 
     var reader = await cmd.ExecuteReaderAsync();
     while (await reader.ReadAsync())
@@ -525,18 +532,14 @@ class DBController
         List<ComponentLocation> locations = new List<ComponentLocation>();
 
         await using var cmd = new NpgsqlCommand(
-        @"WITH projekt_adatok AS (
-            SELECT c.name, s.x, s.y, s.z,
-                ROW_NUMBER() OVER (ORDER BY s.x, s.y, s.z) AS utvonal
-        FROM components c
-        JOIN stack s ON c.id = s.component_id
-        JOIN reservations r ON c.id = r.item_id
-        WHERE r.project_id = @p1
-        )
-
-        SELECT *
-        FROM projekt_adatok
-        ORDER BY utvonal;", dataSource.OpenConnection())
+        @"SELECT c.id, c.name, s.x, s.y, s.z,
+            CONCAT(s.x, ', ', s.y, ', ', s.z) AS utvonal
+            FROM projects p
+            JOIN project_components pc ON p.id = pc.project_id
+            JOIN components c ON pc.component_id = c.id
+            JOIN stack s ON c.id = s.component_id
+            WHERE p.id = @p1
+            ORDER BY s.x, s.y, s.z", dataSource.OpenConnection())
             {
                 Parameters = 
                 {

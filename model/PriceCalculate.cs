@@ -9,4 +9,8 @@ public class PriceCalculate
     public string? status {get; set;}
 
     public int sumPrice{get; set;}
+
+    public int id {get;set;}
+
+    public string? state {get;set;}
 }

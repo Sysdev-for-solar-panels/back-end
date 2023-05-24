@@ -286,9 +286,9 @@ public class LoginController : ControllerBase
 
  [HttpGet("price-calculate")]
     [Authorize(Roles = "szakember")]
-    public async Task<IActionResult> PriceCalculate()
+    public async Task<IActionResult> PriceCalculate([FromBody] PriceCalculate getprice)
     {
-        var result = await new DBController().GetPriceCalculate();
+        var result = await new DBController().GetPriceCalculate(getprice.state!,getprice.id);
         if (result.Count == 0)
         {
             return StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}));
