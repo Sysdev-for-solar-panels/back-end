@@ -528,9 +528,9 @@ class DBController
         }
     }
 
-    public async Task<List<ComponentLocation>> ComponentLocations(int id)
+    public async Task<List<Location>> Locations(int id, string ComponentName,int X, int Y, int Z, int utvonal)
     {
-        List<ComponentLocation> locations = new List<ComponentLocation>();
+        List<Location> locations = new List<Location>();
 
         await using var cmd = new NpgsqlCommand(
         @"SELECT c.id, c.name, s.x, s.y, s.z,
@@ -550,19 +550,22 @@ class DBController
         var reader = await cmd.ExecuteReaderAsync();
         while(await reader.ReadAsync())
         {
-            
-            String componentName = reader.GetString(0);
-            int x = reader.GetInt32(1);
-            int y = reader.GetInt32(2);
-            int z = reader.GetInt32(3);
+            int azon = reader.GetInt32(0);
+            String componentName = reader.GetString(1);
+            int x = reader.GetInt32(2);
+            int y = reader.GetInt32(3);
+            int z = reader.GetInt32(4);
+            int ut = reader.GetInt32(5);
 
             locations.Add(
-                new ComponentLocation
+                new Location
                 {
+                    id = azon,
                     ComponentName = componentName,
                     X = x,
                     Y = y,
                     Z = z,
+                    utvonal = ut,
                 }
             );
         }
