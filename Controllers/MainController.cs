@@ -372,9 +372,9 @@ public class LoginController : ControllerBase
 
     [HttpPost("component-location")]
     [Authorize(Roles = "raktaros")]
-    public async Task<ActionResult> ComponentLocation([FromBody] ProjectID project)
+    public async Task<ActionResult> Locations([FromBody] Location p)
     {
-        var result = await new DBController().ComponentLocations(project.ID);
+        List<Location> result = await new DBController().Locations(p.id,p.ComponentName,p.X,p.Y,p.Z,p.utvonal);
 
         if (result.Count == 0) 
         {
