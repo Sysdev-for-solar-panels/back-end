@@ -528,7 +528,7 @@ class DBController
         }
     }
 
-    public async Task<List<Location>> Locations(int id, string ComponentName,int X, int Y, int Z, int utvonal)
+    public async Task<List<Location>> Locations(int id, string ComponentName,int X, int Y, int Z, string utvonal)
     {
         List<Location> locations = new List<Location>();
 
@@ -555,7 +555,7 @@ class DBController
             int x = reader.GetInt32(2);
             int y = reader.GetInt32(3);
             int z = reader.GetInt32(4);
-            int ut = reader.GetInt32(5);
+            string ut = reader.GetString(5);
 
             locations.Add(
                 new Location
