@@ -127,7 +127,6 @@ public class LoginController : ControllerBase
     {
         if (price.ID == 0 || price.Value == 0)
         {
-            Console.Error.WriteLine("result");
             return BadRequest(JsonSerializer.Serialize(new {Message = "Missing data"}));
         }
         else 
@@ -257,7 +256,7 @@ public class LoginController : ControllerBase
         
         return result;
     }
-        [HttpPost("set-project-to-draft")]
+    [HttpPost("set-project-to-draft")]
     [Authorize(Roles = "szakember")]
     public async Task<ActionResult> SetProjectToDraft([FromBody] Drafter drafter)
     {
@@ -284,7 +283,7 @@ public class LoginController : ControllerBase
         return result;
 }
 
- [HttpGet("price-calculate")]
+    [HttpPost("price-calculate")]
     [Authorize(Roles = "szakember")]
     public async Task<IActionResult> PriceCalculate([FromBody] PriceCalculate getprice)
     {
@@ -300,19 +299,18 @@ public class LoginController : ControllerBase
     }
 
 
-    [HttpPost("project-close_fail")]
+    [HttpPost("project-close-fail")]
     [Authorize(Roles = "szakember")]
-    public async Task<IActionResult> ProjectStatus([FromBody] ProjectStat projectStat)
-{
-    var result = await new DBController().SetProjectStatus(projectStat.ProjectName!, projectStat.status!) switch
+    public async Task<ActionResult> ProjectCloseFail([FromBody] ProjectStat projectStat)
     {
-        DBController.Result.Ok => Ok(JsonSerializer.Serialize(new { Message = "Successfully filled up project status" })),
-        DBController.Result.DbException => StatusCode(500, JsonSerializer.Serialize(new { Message = "Internal error" })),
-        _ => StatusCode(500, JsonSerializer.Serialize(new { Message = "Internal error" }))
-    };
-
-    return result;
-}
+        var result = await new DBController().SetProjectStatus(projectStat.ProjectName!, projectStat.status!) switch
+        {
+            DBController.Result.Ok => Ok(JsonSerializer.Serialize(new { Message = "Successfully filled up project status" })),
+            DBController.Result.DbException => StatusCode(500, JsonSerializer.Serialize(new { Message = "Internal error" })),
+            _ => StatusCode(500, JsonSerializer.Serialize(new { Message = "Internal error" }))
+        };
+        return result;
+    }
 
     [HttpGet("missing-component")]
     [Authorize(Roles = "raktarvezeto")]
@@ -363,7 +361,7 @@ public class LoginController : ControllerBase
     [Authorize(Roles = "szakember")]
     public async Task<ActionResult> SetProjectStatus([FromBody] SetStatus newStatus)
     {
-        var result = await new DBController().ChangeProjectStatus(newStatus.ID) switch {
+        var result = await new DBController().SetProjectStatus(newStatus.status!,newStatus.ID) switch {
             DBController.Result.Ok => Ok(JsonSerializer.Serialize(new {Message =  "Succesfully changed the status"})),
             DBController.Result.DbException => StatusCode(500,JsonSerializer.Serialize(new {Message =  "There is no project like that"})),
             _  => StatusCode(500,JsonSerializer.Serialize(new {Message = "Internal error"}))

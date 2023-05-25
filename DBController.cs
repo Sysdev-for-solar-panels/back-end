@@ -18,6 +18,11 @@ class DBController
         dataSource = NpgsqlDataSource.Create($"Host={host};Port={port};Username={uesrname};Password={password};Database={database}");
     }
 
+    ~DBController()
+    {
+        dataSource.Dispose();
+    }
+
     public async Task<(string,string)?> Login(string email, string password)
     {
         await using var cmd = new NpgsqlCommand(
@@ -381,37 +386,33 @@ class DBController
 
     public async Task<List<PriceCalculate>> GetPriceCalculate(string state,int id)
     {
-    List<PriceCalculate> results = new List<PriceCalculate>();
-    await using var cmd = new NpgsqlCommand(
-        @"SELECT p.id, ((p.process_price + SUM(c.price)) * 1.2) AS ar
-            FROM projects p
-            JOIN project_components pc ON p.id = pc.project_id
-            JOIN components c ON pc.component_id = c.id
-            WHERE p.status = @p1 AND p.id = @p2
-            GROUP BY p.id, p.process_price;", dataSource.OpenConnection())
-        {
-            Parameters =
+        List<PriceCalculate> results = new List<PriceCalculate>();
+        await using var cmd = new NpgsqlCommand(
+            @"SELECT p.id, ((p.process_price + SUM(c.price)) * 1.2) AS ar
+                FROM projects p
+                JOIN project_components pc ON p.id = pc.project_id
+                JOIN components c ON pc.component_id = c.id
+                WHERE p.status = @p1 AND p.id = @p2
+                GROUP BY p.id, p.process_price;", dataSource.OpenConnection())
             {
-                new("p1", state),
-                new("p2", id),
-            }
-        };
+                Parameters =
+                {
+                    new("p1", state),
+                    new("p2", id),
+                }
+            };
 
-    var reader = await cmd.ExecuteReaderAsync();
-    while (await reader.ReadAsync())
-    {
-        results.Add(new PriceCalculate
+        var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
         {
-            name = reader.GetString(0),
-            description = reader.GetString(1),
-            status = reader.GetString(2),
-            sumPrice = reader.GetInt32(3),
-        });
+            results.Add(new PriceCalculate
+            {
+                id = reader.GetInt32(0),
+                sumPrice = reader.GetInt32(1),
+            });
+        }
+        return results; 
     }
-
-    return results;
-    
-}
 
 
     public async Task<List<MissingComponent>> MissingComponent()
@@ -504,7 +505,7 @@ class DBController
     }
 
     //set project status, 2 parameters
-        public async Task<Result> SetProjectStatus(string status, int id)
+    public async Task<Result> SetProjectStatus(string status, int id)
     {
         await using var cmd = new NpgsqlCommand(
         @"UPDATE projects SET status= @p1 WHERE id = @p2", dataSource.OpenConnection())
