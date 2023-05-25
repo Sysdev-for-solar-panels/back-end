@@ -367,9 +367,9 @@ class DBController
             {
                 Parameters =
                 {
-                    new NpgsqlParameter("@p3", NpgsqlDbType.Text) { Value = pName },
                     new NpgsqlParameter("@p1", NpgsqlDbType.Integer) { Value = time },
-                    new NpgsqlParameter("@p2", NpgsqlDbType.Integer) { Value = price }
+                    new NpgsqlParameter("@p2", NpgsqlDbType.Integer) { Value = price },
+                    new NpgsqlParameter("@p3", NpgsqlDbType.Text) { Value = pName }
                 }
             };
 
