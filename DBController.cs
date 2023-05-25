@@ -551,10 +551,10 @@ class DBController
         while(await reader.ReadAsync())
         {
             
-            String componentName = reader.GetString(0);
-            int x = reader.GetInt32(1);
-            int y = reader.GetInt32(2);
-            int z = reader.GetInt32(3);
+            String componentName = reader.GetString(1);
+            int x = reader.GetInt32(2);
+            int y = reader.GetInt32(3);
+            int z = reader.GetInt32(4);
 
             locations.Add(
                 new ComponentLocation
